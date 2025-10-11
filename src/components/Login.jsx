@@ -137,6 +137,14 @@ const Login = ({ onLoginSuccess }) => {
           </button>
         </form>
       </div>
+    
+    
+        <a 
+      href="https://wa.me/51958475088?text=Hola" 
+      target="_blank" 
+>
+      💬 Chatea con nosotros en WhatsApp
+    </a>
     </div>
   );
 };
