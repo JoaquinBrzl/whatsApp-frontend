@@ -7,7 +7,7 @@ const MessageSender = ({ isConnected, onMessageSent }) => {
     templateOption: 'cita_gratis',
     nombre: '',
     fecha: '',
-    hora: ''
+    hora: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -149,6 +149,7 @@ Por favor, confirma tu asistencia respondiendo a este mensaje.
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    
     if (!isConnected) {
       setError('Debes estar conectado a WhatsApp para enviar mensajes');
       return;
@@ -162,14 +163,18 @@ Por favor, confirma tu asistencia respondiendo a este mensaje.
     setError('');
     setSuccess('');
 
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/send-message`, {
+    const formDataToSend = new FormData();
+    for (const key in formData) {
+      formDataToSend.append(key, formData[key]);
+    }
+
+  try {
+      const response = await fetch(`${apiBaseUrl}/api/send-message-image`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: formDataToSend
       });
 
       const data = await response.json();
@@ -190,11 +195,10 @@ Por favor, confirma tu asistencia respondiendo a este mensaje.
         templateOption: 'cita_gratis',
         nombre: '',
         fecha: '',
-        hora: ''
+        hora: '',
       });
       setPreview('');
 
-      // Notificar al componente padre
       if (onMessageSent) {
         onMessageSent(data);
       }
@@ -204,6 +208,51 @@ Por favor, confirma tu asistencia respondiendo a este mensaje.
     } finally {
       setLoading(false);
     }
+
+
+
+    // try {
+    //   const response = await fetch(`${apiBaseUrl}/api/send-message`, {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       'Authorization': `Bearer ${token}`
+    //     },
+    //     body: JSON.stringify(formData)
+    //   });
+
+    //   const data = await response.json();
+
+    //   if (!response.ok) {
+    //     if (data.errors) {
+    //       const errorMessages = data.errors.map(err => `${err.field}: ${err.message}`).join(', ');
+    //       throw new Error(errorMessages);
+    //     }
+    //     throw new Error(data.message || 'Error al enviar mensaje');
+    //   }
+
+    //   setSuccess(`Mensaje enviado exitosamente a ${formData.telefono}`);
+      
+    //   // Limpiar formulario
+    //   setFormData({
+    //     telefono: '',
+    //     templateOption: 'cita_gratis',
+    //     nombre: '',
+    //     fecha: '',
+    //     hora: '',
+    //   });
+    //   setPreview('');
+
+    //   // Notificar al componente padre
+    //   if (onMessageSent) {
+    //     onMessageSent(data);
+    //   }
+
+    // } catch (error) {
+    //   setError(error.message);
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   // Limpiar mensajes
@@ -252,8 +301,8 @@ Por favor, confirma tu asistencia respondiendo a este mensaje.
           <small>Formato: +34 123 456 789 o 123456789</small>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="templateOption">📝 Tipo de Mensaje *</label>
+        {/* <div className="form-group">
+          <label htmlFor="templateOption">📝Tipo Servicio *</label>
           <select
             id="templateOption"
             name="templateOption"
@@ -262,15 +311,30 @@ Por favor, confirma tu asistencia respondiendo a este mensaje.
             disabled={loading || !isConnected}
             required
           >
-            <option value="cita_gratis">Cita Gratuita - Confirmación</option>
-            <option value="cita_pagada">Cita Pagada - Confirmación</option>
-            <option value="recordatorio_cita">Recordatorio de Cita</option>
-            <option value="confirmacion_asistencia">Confirmación de Asistencia</option>
+            <option value="cita_gratis">Diseño y Desarrollo Web</option>
+            <option value="cita_pagada">Gestion de Redes Sociales</option>
+            <option value="recordatorio_cita">Marketing y Gestion Digital</option>
+            <option value="confirmacion_asistencia">Branding y Diseño</option>
+          </select>
+        </div> */}
+        <div className="form-group">
+          <label htmlFor="templateOption">📝Tipo de mensaje *</label>
+          <select
+            id="templateOption"
+            name="templateOption"
+            value={formData.templateOption}
+            onChange={handleInputChange}
+            disabled={loading || !isConnected}
+            required
+          >
+            <option value="cita_gratis">Cita gratis</option>
+            <option value="cita_pagada">Cita pagada</option>
+            <option value="recordatorio_cita">Recordatorio cita</option>
+            <option value="confirmacion_asistencia">Confirmacion asistencia</option>
           </select>
         </div>
-
         <div className="form-group">
-          <label htmlFor="nombre">👨‍⚕️ Nombre del Psicólogo *</label>
+          <label htmlFor="nombre">👨‍⚕️ Nombre del Cliente *</label>
           <input
             type="text"
             id="nombre"
@@ -280,6 +344,20 @@ Por favor, confirma tu asistencia respondiendo a este mensaje.
             placeholder="Nombre completo del psicólogo"
             disabled={loading || !isConnected}
             required
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="image">🖼 Subir Imagen</label>
+          <input
+            type="file"
+            id="image"
+            name="image"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files[0];
+              setFormData({ ...formData, image: file });
+            }}
+            disabled={loading || !isConnected}
           />
         </div>
 
