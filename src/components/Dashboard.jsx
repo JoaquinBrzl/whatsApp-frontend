@@ -16,11 +16,6 @@ const Dashboard = ({ user, onLogout }) => {
     qrInfo: null,
     connectionState: {},
   });
-  // ESTADO PARA CONECTIVIDAD DE RED DEL BACKEND
-  const [networkStatus, setNetworkStatus] = useState({
-    status: "unknown", // 'ok', 'error', 'checking'
-    message: "Pendiente de verificación",
-  });
   const [notifications, setNotifications] = useState([]);
   const [qrString, setQrString] = useState("");
   const [sentMessages, setSentMessages] = useState([]);
@@ -256,35 +251,41 @@ const Dashboard = ({ user, onLogout }) => {
     async (endpoint, options = {}) => {
       if (!token) {
         setTokenExpired(true);
+        setError("No hay token de autenticación");
         throw new Error("No token available");
       }
 
-      const url = `${apiBaseUrl}${endpoint}`;
-      const config = {
-        method: options.method || "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: options.body ? JSON.stringify(options.body) : undefined,
-      };
-
       try {
-        const response = await fetch(url, config);
-        const data = await response.json();
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(`${apiBaseUrl}${endpoint}`, {
+          method: options.method || "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: options.body ? JSON.stringify(options.body) : undefined,
+        });
 
         if (response.status === 401) {
           setTokenExpired(true);
-          throw new Error(data.message || "Token expirado");
+          throw new Error("Token expirado");
         }
 
+        const data = await response.json();
+
         if (!response.ok) {
-          throw new Error(data.message || `Error en la solicitud: ${response.status}`);
+          throw new Error(data.message || "Error en la solicitud");
         }
 
         return data;
       } catch (error) {
+        console.error(`❌ Error en API ${endpoint}:`, error);
+        setError(error.message);
         throw error;
+      } finally {
+        setLoading(false);
       }
     },
     [token, apiBaseUrl],
@@ -345,36 +346,13 @@ const Dashboard = ({ user, onLogout }) => {
   // Obtener estado actual
   const getStatus = useCallback(async () => {
     try {
-      setLoading(true);
-      setError("");
-
       const status = await apiCall("/api/qr-status");
       handleStatusUpdate(status);
       addNotification("Estado actualizado", "info");
     } catch (error) {
       addNotification(`Error al obtener estado: ${error.message}`, "error");
-    } finally {
-      setLoading(false); // <--- Mover el finally aquí
     }
   }, [apiCall, handleStatusUpdate]);
-
-  // Función para verificar la conectividad de red del backend
-  const checkNetwork = useCallback(async () => {
-    setNetworkStatus({ status: "checking", message: "Verificando conexión de red..." });
-    try {
-      const result = await apiCall("/api/check-network");
-      if (result.network === "OK") {
-        setNetworkStatus({ status: "ok", message: "El backend tiene conectividad a Internet (endpoint OK)." });
-        addNotification("Conectividad de red del backend: OK", "success");
-      } else {
-        setNetworkStatus({ status: "error", message: `Fallo de red: ${result.message}` });
-        addNotification(`Fallo de red del backend: ${result.message}`, "error");
-      }
-    } catch (error) {
-      setNetworkStatus({ status: "error", message: "No se pudo contactar al servidor o error de API." });
-      addNotification(`Error al contactar el endpoint de red: ${error.message}`, "error");
-    }
-  }, [apiCall, addNotification]);
 
   // Iniciar contador
   const startCountdown = (initialTime) => {
@@ -419,7 +397,6 @@ const Dashboard = ({ user, onLogout }) => {
       setTimeout(() => {
         if (mounted) {
           getStatus();
-          checkNetwork(); // LLAMADA INICIAL PARA DIAGNÓSTICO DE RED
         }
       }, 1000);
     };
@@ -480,7 +457,7 @@ const Dashboard = ({ user, onLogout }) => {
         </div>
       );
     }
-
+ 
     if (connectionStatus.isConnected) {
       return (
         <div className="status-card connected">
@@ -497,6 +474,15 @@ const Dashboard = ({ user, onLogout }) => {
               {new Date().toLocaleTimeString()}
             </p>
           </div>
+          <button onClick={getStatus} className="btn btn-secondary">
+            Actualizar Estado
+          </button>
+          <button onClick={handleResetAuth} className="btn btn-secondary">
+            Eliminar Auth_info
+          </button>
+          <button onClick={checkAuthStatus} className="btn btn-secondary">
+            Verificar Auth
+          </button>
         </div>
       );
     }
@@ -601,11 +587,11 @@ const Dashboard = ({ user, onLogout }) => {
                   <li>Escanea el código QR mostrado</li>
                 </ol>
               </div>
-              <div className="problem-qr">
-                <p className="´">Si hay problemas presione: </p>
-                <button onClick={handleResetAuth} className="btn btn-secondary">
-                  Eliminar QR
-                </button></div>
+  <div className="problem-qr">
+    <p className="´">Si hay problemas presione: </p>
+    <button onClick={handleResetAuth} className="btn btn-secondary">
+      Eliminar QR
+    </button></div>
 
               <div className="qr-content">{renderContent()}</div>
             </section>
@@ -635,36 +621,8 @@ const Dashboard = ({ user, onLogout }) => {
 
                 <div className="status-item">
                   <span>Tiempo restante:</span>
-                  <span className={connectionStatus.hasActiveQR ? formatTime(timeRemaining).className : ""}>
-                    {connectionStatus.isConnected ? 'N/A (Conectado)' : formatTime(timeRemaining).timeString}
-                  </span>
+                  <span>{formatTime(timeRemaining).timeString}</span>
                 </div>
-
-                {/* ÍTEM DE ESTADO DE RED DEL BACKEND */}
-                <div className="status-item">
-                  <span>Conectividad de Red:</span>
-                  <span
-                    className={
-                      networkStatus.status === "ok"
-                        ? "connected"
-                        : networkStatus.status === "error"
-                          ? "disconnected"
-                          : "warning"
-                    }
-                  >
-                    {networkStatus.status === "ok"
-                      ? "Operacional"
-                      : networkStatus.status === "error"
-                        ? "Fallo de Red"
-                        : "Verificando..."}
-                  </span>
-                </div>
-                {networkStatus.status !== "ok" && (
-                  <div className="status-message">
-                    <p>{networkStatus.message}</p>
-                  </div>
-                )}
-                {/* FIN NUEVO ÍTEM */}
 
                 <div className="status-item">
                   <span>Socket:</span>
@@ -685,10 +643,6 @@ const Dashboard = ({ user, onLogout }) => {
               <div className="status-actions">
                 <button onClick={getStatus} className="btn btn-secondary">
                   Actualizar Estado
-                </button>
-                {/* BOTÓN DE DIAGNÓSTICO DE RED */}
-                <button onClick={checkNetwork} className="btn btn-secondary">
-                  Diagnóstico de Red
                 </button>
                 <button onClick={handleResetAuth} className="btn btn-secondary">
                   Eliminar Auth
