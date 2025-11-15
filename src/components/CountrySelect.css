@@ -1,0 +1,51 @@
+.country-select {
+  position: relative;
+  width: 120px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.selected {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+}
+
+.flag-icon {
+  width: 20px;
+  height: 14px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+.dropdown {
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  position: absolute;
+  width: 100%;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  top: 110%;
+  z-index: 10;
+}
+
+.dropdown li {
+  padding: 6px 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dropdown li:hover {
+  background-color: #f0f0f0;
+}
+.dropdown .flag-icon {
+  width: 16px;
+  height: 16px;
+}

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import './MessageSender.css';
+import CountrySelect from "./CountrySelect";
+
 
 const MessageSender = ({ isConnected, onMessageSent }) => {
   const [formData, setFormData] = useState({
@@ -126,6 +128,13 @@ Por favor, confirma tu asistencia respondiendo a este mensaje.
     }
 
     // Validar formato de teléfono
+    switch (formData.codigoPais) {
+      case "+51": // Perú
+        formData.telefono = 51 + formData.telefono;
+        break;
+      default:
+        formData.telefono = formData.codigoPais + formData.telefono;
+    }
     const cleantelefono = formData.telefono.replace(/\D/g, '');
     if (cleantelefono.length < 10 || cleantelefono.length > 15) {
       setError('El número de teléfono debe tener entre 10 y 15 dígitos');
@@ -191,6 +200,7 @@ Por favor, confirma tu asistencia respondiendo a este mensaje.
       
       // Limpiar formulario
       setFormData({
+        codigoPais: "+51", //nuevo
         telefono: '',
         templateOption: 'cita_gratis',
         nombre: '',
@@ -288,18 +298,31 @@ Por favor, confirma tu asistencia respondiendo a este mensaje.
       <form onSubmit={handleSubmit} className="message-form">
         <div className="form-group">
           <label htmlFor="telefono">📞 Número de Teléfono *</label>
-          <input
-            type="tel"
-            id="telefono"
-            name="telefono"
-            value={formData.telefono}
-            onChange={handleInputChange}
-            placeholder="Ej: +34 123 456 789"
-            disabled={loading || !isConnected}
-            required
-          />
-          <small>Formato: +34 123 456 789 o 123456789</small>
+
+          <div style={{ display: "flex", gap: "10px" }}>
+            
+            <CountrySelect
+              value={formData.codigoPais}
+              onChange={(code) =>
+                setFormData({ ...formData, codigoPais: code })
+              }
+            />
+
+            <input
+              type="tel"
+              id="telefono"
+              name="telefono"
+              value={formData.telefono}
+              onChange={handleInputChange}
+              placeholder="123 456 789"
+              disabled={loading || !isConnected}
+              required
+            />
+          </div>
+
+          <small>Formato: 987 654 321 (el código ya está seleccionado)</small>
         </div>
+
 
         {/* <div className="form-group">
           <label htmlFor="templateOption">📝Tipo Servicio *</label>
